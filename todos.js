@@ -44,9 +44,17 @@ const updateTodo = (id, body) => {
   });
 };
 
+const deleteTodo = (id) => {
+  readTodos((todos) => {
+    const newTodos = todos.filter((todo) => todo.id !== id);
+    writeTodos(newTodos);
+  });
+};
+
 module.exports = {
   writeTodos,
   readTodos,
   createTodo,
   updateTodo,
+  deleteTodo,
 };

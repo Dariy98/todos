@@ -1,60 +1,48 @@
-const url = require("url");
-const http = require("http");
-const { readTodos, createTodo } = require("./todos");
+const fs = require("fs");
+const express = require("express");
+const bodyParser = require("body-parser");
 
-// console log
-const logger = (request, response) => {
-  const { pathname, query } = url.parse(request.url, true);
+const { createTodo, readTodos, updateTodo } = require("./todos");
 
-  console.table([
-    {
-      METHOD: request.method,
-      PATHNAME: pathname,
-      QUERY: JSON.stringify(query),
-    },
-  ]);
-};
+const port = 3009;
+const app = express();
 
-// todos api
-const todos = (request, response) => {
-  const { pathname, query } = url.parse(request.url, true);
-  if (pathname === "/todos") {
-    switch (request.method) {
-      case "GET":
-        response.setHeader("Content-Type", "application/json");
+app.use(bodyParser.json());
+app.use(express.static("public"));
 
-        readTodos((todos) => {
-          response.end(JSON.stringify(todos));
-        });
-        break;
-      case "POST":
-        let rawData = "";
-        request.on("data", (chunk) => (rawData += chunk));
-        request.on("end", () => {
-          try {
-            const { title } = JSON.parse(rawData);
-
-            createTodo(title);
-
-            response.writeHead(201, { "Content-Type": "text/plain" });
-            response.end("Задача создана");
-          } catch (error) {
-            console.log(error);
-          }
-        });
-        break;
-
-      default:
-        break;
-    }
-  }
-};
-
-// create server
-const server = http.createServer((request, response) => {
-  logger(request, response);
-  todos(request, response);
+app.get("/", (req, res) => {
+  fs.readFile("index.html", "utf-8", (error, content) => {
+    if (error) throw error;
+    res.send(content);
+  });
 });
 
-// start listen port 3009
-server.listen(3009);
+app.get("/api/v1/todos", (req, res) => {
+  console.log(req.query);
+  readTodos((todos) => res.json(todos));
+});
+
+app.post("/api/v1/todos", (req, res) => {
+  const { title } = req.body;
+
+  createTodo(title);
+
+  res.sendStatus(201);
+});
+
+app.put("/api/v1/todos/:id", (req, res) => {
+  const { id } = req.params;
+  const body = req.body;
+
+  updateTodo(Number(id), body);
+
+  res.sendStatus(204);
+});
+
+app.delete("/api/v1/todos", function (req, res) {
+  res.send("Got a DELETE request at /user");
+});
+
+app.listen(port, () =>
+  console.log(`Example app listening at http://localhost:${port}`)
+);
